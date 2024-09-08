@@ -115,13 +115,13 @@ chmod 777 /etc/apache2/sites-enabled
 sites_available_dir="/etc/apache2/sites-available"
 
 
-# if there are any sites, start the service
-if [ "$(ls -A $sites_available_dir | grep -v 'default')" ]; then
-    service apache2 start
-    echo "Apache service started."
-else
-    echo "No websites found in $sites_available_dir. Apache service not started automatically."
-fi
+# # if there are any sites, start the service
+# if [ "$(ls -A $sites_available_dir | grep -v 'default')" ]; then
+#     service apache2 start
+#     echo "Apache service started."
+# else
+#     echo "No websites found in $sites_available_dir. Apache service not started automatically."
+# fi
 
 
 # pm2
