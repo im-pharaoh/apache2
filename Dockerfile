@@ -15,7 +15,6 @@ RUN apt-get update && \
         ttyd \
         screen \
         apache2 \
-        mysql-server \
         php8.2-fpm \
         php8.2-mysql \
         php8.2-curl \
