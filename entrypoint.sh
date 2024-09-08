@@ -108,8 +108,8 @@ replace_ip_in_sites() {
 replace_ip_in_sites
 
 # to prevent users from editing the files..
-# chmod 700 /etc/apache2/sites-available
-# chmod 700 /etc/apache2/sites-enabled
+chmod 777 /etc/apache2/sites-available
+chmod 777 /etc/apache2/sites-enabled
 
 
 sites_available_dir="/etc/apache2/sites-available"
