@@ -58,25 +58,6 @@ RUN apt-get update && \
 ########## PHP Composer ##########
 COPY --from=composer:latest /usr/bin/composer /usr/local/bin/composer
 
-########## MySQL ##########
-COPY mysql/mysqld.cnf /etc/mysql/mysql.conf.d/
-RUN chown mysql:mysql -R /var/lib/mysql
-RUN usermod -d /var/lib/mysql mysql
-RUN chmod a+rwx /run/mysqld
-
-# Get MySQL root password from debian.cnf
-RUN MYSQL_PASSWORD=$(awk -F "=" '/password/ {gsub(/[ \t]+/, "", $2); print $2; exit}' /etc/mysql/debian.cnf); \
-    \
-    if [ -z "$MYSQL_PASSWORD" ]; then \
-        echo "Error: Password not found in /etc/mysql/debian.cnf"; \
-        exit 1; \
-    fi; \
-    \
-    service mysql start && \
-    mysql -u root -e "ALTER USER 'debian-sys-maint'@'localhost' IDENTIFIED BY '$MYSQL_PASSWORD';"
-
-
-
 ########## EXPOSED PORTS ##########
 EXPOSE 22 3306 7681 8080
 
@@ -89,33 +70,6 @@ COPY apache/apache2.conf /etc/apache2/
 # Allow .htaccess rewrite rules (needed for WP pretty links and wpcli auto login)
 #RUN sed -i '/<Directory \/var\/www\/>/,/AllowOverride None/ s/AllowOverride None/AllowOverride All/' /etc/apache2/apache2.conf
 RUN mkdir -p /var/log/apache2/domlogs/
-
-
-
-
-########## PHPMYADMIN ##########
-
-COPY phpmyadmin/config.inc.php /etc/phpmyadmin/
-COPY phpmyadmin/pma.php /usr/share/phpmyadmin/pma.php
-
-RUN new_password=$(openssl rand -base64 12 | tr -d '/+' | head -c 16) \
-    && sed -i "s/\(\$dbpass='.*'\)/\$dbpass='$new_password';/" "/etc/phpmyadmin/config-db.php" \
-    && pma_file="/usr/share/phpmyadmin/pma.php" \
-    && sed -i "s/\(\$_SESSION\['PMA_single_signon_user'] = '\).*\(';.*\)/\1phpmyadmin\2/" "$pma_file" \
-    && sed -i "s/\(\$_SESSION\['PMA_single_signon_password'] = '\).*\(';.*\)/\1$new_password\2/" "$pma_file" \
-    && sed -i "s/\(\$_SESSION\['PMA_single_signon_host'] = '\).*\(';.*\)/\1localhost\2/" "$pma_file" \
-    && service mysql start \
-    && mysql -u root -e "CREATE DATABASE IF NOT EXISTS phpmyadmin;" \
-    && mysql -u root -e "CREATE USER 'phpmyadmin'@'localhost' IDENTIFIED BY '$new_password';" \
-    && mysql -u root -e "GRANT ALL PRIVILEGES ON phpmyadmin.* TO 'phpmyadmin'@'localhost';" \
-    && mysql -u root -e "GRANT ALL ON *.* TO 'phpmyadmin'@'localhost';" \
-    && mysql -u root -e "REVOKE CREATE USER ON *.* FROM 'phpmyadmin'@'localhost';" \
-    && mysql -u root -e "REVOKE CREATE ON *.* FROM 'phpmyadmin'@'localhost';" \
-    && mysql -u root -e "FLUSH PRIVILEGES;" \
-    && mysql -u root < /usr/share/doc/phpmyadmin/examples/create_tables.sql \
-    && service mysql stop
-
-
 
 ########## PHP-FPM ##########
 # 8.2
@@ -143,10 +97,6 @@ RUN sed -i \
 RUN sed -i 's|;sendmail_path = *|sendmail_path = "/usr/bin/msmtp -t"|g' /etc/php/8.2/cli/php.ini
 
 
-########## EMAIL ##########
-COPY email/msmtprc /etc/msmtprc
-
-
 ########## SSH ##########
 ENV NOTVISIBLE "in users profile"
 RUN echo "export VISIBLE=now" >> /etc/profile
@@ -168,8 +118,6 @@ RUN curl -O https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli
 
 ########## cleanup ##########
 RUN rm -rf /var/cache/apk/* /tmp/* /var/tmp/*
-
-
 
 ########## docker run entrypoint  ##########
 COPY entrypoint.sh /etc/entrypoint.sh
